@@ -88,6 +88,7 @@ Then the app should display an error message
 #### Unexpected – Error Course (Sad Path):
 1. System delivers unexpected error.
 
+
 ### Load Crypto Feed From Cache Use Case
 
 #### Primary Course (Happy Path):
