@@ -6,4 +6,6 @@ import java.util.Date
 interface CryptoFeedStore {
     fun deleteCache(): Flow<Exception?>
     fun insert(feeds: List<LocalCryptoFeed>, timestamp: Date): Flow<Exception?>
+
+    fun loadData() : List<LocalCryptoFeed>
 }
