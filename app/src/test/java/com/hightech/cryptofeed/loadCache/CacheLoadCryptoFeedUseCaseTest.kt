@@ -157,22 +157,22 @@ class CacheLoadCryptoFeedUseCaseTest {
         confirmVerified(store)
     }
 
+    @Test
+    fun testSystemDeleteCache() = runBlocking {
+        every {
+            store.deleteCache()
+        } returns flowOf()
 
-    private fun uniqueCryptoFeed(): CryptoFeed {
-        return CryptoFeed(
-            CoinInfo(
-                UUID.randomUUID().toString(),
-                "any",
-                "any",
-                "any-url"
-            ),
-            Raw(
-                Usd(
-                    1.0,
-                    1F,
-                )
-            )
-        )
+
+        sut.save(uniqueItems().first).test {
+            awaitComplete()
+        }
+
+        verify(exactly = 1) {
+            store.deleteCache()
+        }
+
+        confirmVerified(store)
     }
 
     private fun uniqueCryptoFeedLocal(): List<LocalCryptoFeed> {
@@ -197,5 +197,44 @@ class CacheLoadCryptoFeedUseCaseTest {
         val difference = currentTime.time - timestamp.time
         val millisecondsIn24Hours = 24 * 60 * 60 * 1000
         return difference < millisecondsIn24Hours
+    }
+
+
+    fun uniqueItems(): Pair<List<CryptoFeed>, List<LocalCryptoFeed>> {
+        val cryptoFeeds = listOf(uniqueCryptoFeed(), uniqueCryptoFeed())
+        val localCryptoFeed = cryptoFeeds.map {
+            LocalCryptoFeed(
+                coinInfo = LocalCoinInfo(
+                    id = it.coinInfo.id,
+                    name = it.coinInfo.name,
+                    fullName = it.coinInfo.fullName,
+                    imageUrl = it.coinInfo.imageUrl
+                ),
+                raw = LocalRaw(
+                    usd = LocalUsd(
+                        price = it.raw.usd.price,
+                        changePctDay = it.raw.usd.changePctDay
+                    )
+                )
+            )
+        }
+        return Pair(cryptoFeeds, localCryptoFeed)
+    }
+
+    private fun uniqueCryptoFeed(): CryptoFeed {
+        return CryptoFeed(
+            CoinInfo(
+                UUID.randomUUID().toString(),
+                "any",
+                "any",
+                "any-url"
+            ),
+            Raw(
+                Usd(
+                    1.0,
+                    1F,
+                )
+            )
+        )
     }
 }

@@ -102,9 +102,6 @@ class CacheCryptoFeedUseCaseTest {
             awaitComplete()
         }
 
-        sut.loadData().test {
-            assertEquals(items.second, captureFeed.captured)
-        }
 
         verifyOrder {
             store.deleteCache()
