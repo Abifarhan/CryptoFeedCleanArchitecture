@@ -45,11 +45,12 @@ class CacheCryptoFeedUseCaseTest {
             store.deleteCache()
         } returns flowOf()
 
+
         sut.save(uniqueItems().first).test {
             awaitComplete()
         }
 
-        verify(exactly = 1) {
+        verify(exactly = 2) {
             store.deleteCache()
         }
 
@@ -99,6 +100,10 @@ class CacheCryptoFeedUseCaseTest {
             assertEquals(items.second, captureFeed.captured)
             assertEquals(timestamp, captureTimeStamp.captured)
             awaitComplete()
+        }
+
+        sut.loadData().test {
+            assertEquals(items.second, captureFeed.captured)
         }
 
         verifyOrder {
@@ -249,6 +254,7 @@ class CacheCryptoFeedUseCaseTest {
         }
         return Pair(cryptoFeeds, localCryptoFeed)
     }
+
 
     private fun anyException(): Exception {
         return Exception()

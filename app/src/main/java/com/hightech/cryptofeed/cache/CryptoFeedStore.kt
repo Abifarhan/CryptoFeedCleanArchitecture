@@ -7,5 +7,12 @@ interface CryptoFeedStore {
     fun deleteCache(): Flow<Exception?>
     fun insert(feeds: List<LocalCryptoFeed>, timestamp: Date): Flow<Exception?>
 
-    fun loadData() : List<LocalCryptoFeed>
+    fun loadData() : Flow<LocalClientResult>
+}
+
+
+sealed class LocalClientResult {
+    data class Success(val root : List<LocalCryptoFeed>) : LocalClientResult()
+
+    data class Failure(val exception: Exception) : LocalClientResult()
 }
