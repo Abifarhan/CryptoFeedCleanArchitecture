@@ -76,7 +76,7 @@ class CacheLoadCryptoFeedUseCaseTest {
     }
 
     @Test
-    fun testRetrieveFeedDataFromCache() = runBlocking {
+    fun testRetrieveAndLoadFeedDataFromCache() = runBlocking {
 
 
         every {
@@ -96,7 +96,7 @@ class CacheLoadCryptoFeedUseCaseTest {
     }
 
     @Test
-    fun validateCacheIsLessThanOneDayOld() = runTest {
+    fun validateCacheIsLessThanOneDayOld() = runBlocking {
         val items = uniqueCryptoFeedLocal()
 
         every {
@@ -108,13 +108,9 @@ class CacheLoadCryptoFeedUseCaseTest {
 
             when(val receivedResult = awaitItem()){
                 is LoadCryptoFeedResult.Success -> {
-                    assertEquals(items.firstOrNull()?.coinInfo?.name, receivedResult.cryptoFeed.firstOrNull()?.coinInfo?.name)
                     assertEquals(isDataLessThan24HoursOld(timestamp), true)
                 }
 
-                is LoadCryptoFeedResult.Failure -> {
-
-                }
                 else -> {
 
                 }
@@ -130,7 +126,36 @@ class CacheLoadCryptoFeedUseCaseTest {
     }
 
 
+    @Test
+    fun createsCryptoFeedFromCacheDataAndDeliver() = runBlocking {
+        val items = uniqueCryptoFeedLocal()
 
+        every {
+            store.loadData()
+        } returns flowOf(LocalClientResult.Success(items))
+
+
+        sut.loadData().test {
+
+            when(val receivedResult = awaitItem()){
+                is LoadCryptoFeedResult.Success -> {
+                    assertEquals(items.firstOrNull()?.coinInfo?.name, receivedResult.cryptoFeed.firstOrNull()?.coinInfo?.name)
+                }
+
+
+                else -> {
+
+                }
+            }
+            awaitComplete()
+        }
+
+        verify(exactly = 1) {
+            store.loadData()
+        }
+
+        confirmVerified(store)
+    }
 
 
     private fun uniqueCryptoFeed(): CryptoFeed {
