@@ -1,6 +1,7 @@
 package com.hightech.cryptofeed.loadCache
 
 import app.cash.turbine.test
+import com.hightech.cryptofeed.api.ConnectivityException
 import com.hightech.cryptofeed.cache.CacheCryptoFeedUseCase
 import com.hightech.cryptofeed.cache.CryptoFeedStore
 import com.hightech.cryptofeed.cache.LocalClientResult
@@ -170,6 +171,63 @@ class CacheLoadCryptoFeedUseCaseTest {
 
         verify(exactly = 1) {
             store.deleteCache()
+        }
+
+        confirmVerified(store)
+    }
+
+    @Test
+    fun testSystemDeliverNoCryptoFeed() = runBlocking {
+        val items = emptyList<LocalCryptoFeed>()
+
+        every {
+            store.loadData()
+        } returns flowOf(LocalClientResult.Success(items))
+
+
+        sut.loadData().test {
+            when(val receivedResult = awaitItem()){
+                is LoadCryptoFeedResult.Success -> {
+                    assertEquals(receivedResult.cryptoFeed.isEmpty(), true)
+                }
+
+                else -> {
+
+                }
+            }
+            awaitComplete()
+        }
+
+        verify(exactly = 1) {
+            store.loadData()
+        }
+
+        confirmVerified(store)
+    }
+
+    @Test
+    fun testSystemDeliverError() = runBlocking {
+
+        every {
+            store.loadData()
+        } returns flowOf(LocalClientResult.Failure(ConnectivityException()))
+
+
+        sut.loadData().test {
+            when(val receivedResult = awaitItem()){
+                is LoadCryptoFeedResult.Failure-> {
+                    assertEquals(receivedResult.exception.message, ConnectivityException().message)
+                }
+
+                else -> {
+
+                }
+            }
+            awaitComplete()
+        }
+
+        verify(exactly = 1) {
+            store.loadData()
         }
 
         confirmVerified(store)
