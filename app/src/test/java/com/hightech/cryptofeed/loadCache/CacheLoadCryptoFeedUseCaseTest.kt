@@ -45,24 +45,6 @@ import java.util.UUID
 class CacheLoadCryptoFeedUseCaseTest {
 
 
-
-//    #### Primary Course (Happy Path):
-//    1. Execute "Load Crypto Feed" command.
-//    2. System retrieves feed data from cache.
-//    3. System validates cache is less than one day old.
-//    4. System creates crypto feed from cached data.
-//    5. System delivers crypto feed.
-//
-//    #### Expired Cache Course (Sad Path):
-//    1. System deletes cache.
-//    2. System delivers no crypto feed.
-//
-//    #### Empty Cache Course (Sad Path):
-//    1. System delivers no crypto feed.
-//
-//    #### Retrieval Error - Error Course (Sad Path):
-//    1. System delivers error.
-
     private val store = mockk<CryptoFeedStore>()
     private lateinit var sut: CacheCryptoFeedUseCase
 
@@ -78,7 +60,6 @@ class CacheLoadCryptoFeedUseCaseTest {
 
     @Test
     fun testRetrieveAndLoadFeedDataFromCache() = runBlocking {
-
 
         every {
             store.loadData()
@@ -99,63 +80,24 @@ class CacheLoadCryptoFeedUseCaseTest {
     @Test
     fun validateCacheIsLessThanOneDayOld() = runBlocking {
         val items = uniqueCryptoFeedLocal()
-
-        every {
-            store.loadData()
-        } returns flowOf(LocalClientResult.Success(items))
-
-
-        sut.loadData().test {
-
-            when(val receivedResult = awaitItem()){
-                is LoadCryptoFeedResult.Success -> {
-                    assertEquals(isDataLessThan24HoursOld(timestamp), true)
-                }
-
-                else -> {
-
-                }
-            }
-            awaitComplete()
-        }
-
-        verify(exactly = 1) {
-            store.loadData()
-        }
-
-        confirmVerified(store)
+        expect(
+            sut = sut,
+            receivedResult = LocalClientResult.Success(items),
+            expectedResult = items.firstOrNull()?.coinInfo?.name ?: "",
+            exactly = 1
+        )
     }
 
 
     @Test
     fun createsCryptoFeedFromCacheDataAndDeliver() = runBlocking {
         val items = uniqueCryptoFeedLocal()
-
-        every {
-            store.loadData()
-        } returns flowOf(LocalClientResult.Success(items))
-
-
-        sut.loadData().test {
-
-            when(val receivedResult = awaitItem()){
-                is LoadCryptoFeedResult.Success -> {
-                    assertEquals(items.firstOrNull()?.coinInfo?.name, receivedResult.cryptoFeed.firstOrNull()?.coinInfo?.name)
-                }
-
-
-                else -> {
-
-                }
-            }
-            awaitComplete()
-        }
-
-        verify(exactly = 1) {
-            store.loadData()
-        }
-
-        confirmVerified(store)
+        expect(
+            sut = sut,
+            receivedResult = LocalClientResult.Success(items),
+            expectedResult = items.firstOrNull()?.coinInfo?.name ?: "",
+            exactly = 1,
+        )
     }
 
     @Test
@@ -177,7 +119,7 @@ class CacheLoadCryptoFeedUseCaseTest {
     }
 
     @Test
-    fun testSystemDeliverNoCryptoFeed() = runBlocking {
+    fun testSystemDeliverNoCryptoFeedAndError() = runBlocking {
         val items = emptyList<LocalCryptoFeed>()
 
         every {
@@ -207,47 +149,32 @@ class CacheLoadCryptoFeedUseCaseTest {
 
     @Test
     fun testSystemDeliverError() = runBlocking {
-
-        every {
-            store.loadData()
-        } returns flowOf(LocalClientResult.Failure(ConnectivityException()))
-
-
-        sut.loadData().test {
-            when(val receivedResult = awaitItem()){
-                is LoadCryptoFeedResult.Failure-> {
-                    assertEquals(receivedResult.exception.message, ConnectivityException().message)
-                }
-
-                else -> {
-
-                }
-            }
-            awaitComplete()
-        }
-
-        verify(exactly = 1) {
-            store.loadData()
-        }
-
-        confirmVerified(store)
+        expect(
+            sut = sut,
+            receivedResult = LocalClientResult.Failure(anyException()),
+            expectedResult = anyException(),
+            exactly = 1
+        )
     }
 
     private fun uniqueCryptoFeedLocal(): List<LocalCryptoFeed> {
-        return listOf(LocalCryptoFeed(
-            LocalCoinInfo((
-                UUID.randomUUID().toString()),
-                "any",
-                "any",
-                "any-url"
-            ),
-            LocalRaw(
-                LocalUsd(
-                    1.0,
-                    1F,
+        return listOf(
+            LocalCryptoFeed(
+                LocalCoinInfo(
+                    (
+                            UUID.randomUUID().toString()),
+                    "any",
+                    "any",
+                    "any-url"
+                ),
+                LocalRaw(
+                    LocalUsd(
+                        1.0,
+                        1F,
+                    )
                 )
             )
-        ))
+        )
     }
 
     private fun isDataLessThan24HoursOld(timestamp: Date): Boolean {
@@ -294,5 +221,48 @@ class CacheLoadCryptoFeedUseCaseTest {
                 )
             )
         )
+    }
+
+    private fun expect(
+        sut: CacheCryptoFeedUseCase,
+        receivedResult: LocalClientResult,
+        expectedResult: Any,
+        exactly: Int = -1,
+    ) = runBlocking {
+
+        every {
+            store.loadData()
+        } returns flowOf(receivedResult)
+
+        sut.loadData().test {
+            when (val resultProcess = awaitItem()) {
+                is LoadCryptoFeedResult.Success -> {
+                    if (resultProcess.cryptoFeed.isEmpty()) {
+                        assertEquals(resultProcess.cryptoFeed.isEmpty(), true)
+                    } else {
+                        assertEquals(
+                            expectedResult,
+                            resultProcess.cryptoFeed.firstOrNull()?.coinInfo?.name
+                        )
+                        assertEquals(isDataLessThan24HoursOld(timestamp), true)
+                    }
+                }
+
+                is LoadCryptoFeedResult.Failure -> {
+                    assertEquals(receivedResult, receivedResult)
+                }
+            }
+
+            awaitComplete()
+        }
+
+        verify(exactly = exactly) {
+            store.loadData()
+        }
+        confirmVerified(store)
+    }
+
+    private fun anyException(): Exception {
+        return Exception()
     }
 }

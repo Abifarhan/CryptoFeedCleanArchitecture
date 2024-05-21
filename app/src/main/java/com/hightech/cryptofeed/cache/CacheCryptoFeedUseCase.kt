@@ -1,12 +1,5 @@
 package com.hightech.cryptofeed.cache
 
-import com.hightech.cryptofeed.api.BadRequestException
-import com.hightech.cryptofeed.api.ConnectivityException
-import com.hightech.cryptofeed.api.HttpClientResult
-import com.hightech.cryptofeed.api.InternalServerErrorException
-import com.hightech.cryptofeed.api.InvalidDataException
-import com.hightech.cryptofeed.api.NotFoundException
-import com.hightech.cryptofeed.api.RemoteCryptoFeed
 import com.hightech.cryptofeed.api.UnexpectedException
 import com.hightech.cryptofeed.domain.BadRequest
 import com.hightech.cryptofeed.domain.CoinInfo
@@ -69,31 +62,7 @@ class CacheCryptoFeedUseCase constructor(
                     emit(LoadCryptoFeedResult.Success(result.root.toModels()))
                 }
                 is LocalClientResult.Failure -> {
-                    when (result.exception) {
-                        is ConnectivityException -> {
-                            emit(LoadCryptoFeedResult.Failure(Connectivity()))
-                        }
-
-                        is InvalidDataException -> {
-                            emit(LoadCryptoFeedResult.Failure(InvalidData()))
-                        }
-
-                        is BadRequestException -> {
-                            emit(LoadCryptoFeedResult.Failure(BadRequest()))
-                        }
-
-                        is NotFoundException -> {
-                            emit(LoadCryptoFeedResult.Failure(NotFound()))
-                        }
-
-                        is InternalServerErrorException -> {
-                            emit(LoadCryptoFeedResult.Failure(InternalServerError()))
-                        }
-
-                        is UnexpectedException -> {
-                            emit(LoadCryptoFeedResult.Failure(Unexpected()))
-                        }
-                    }
+                    emit(LoadCryptoFeedResult.Failure(result.exception))
                 }
             }
         }
@@ -119,6 +88,8 @@ class CacheCryptoFeedUseCase constructor(
             )
         }
     }
+
+
 
 }
 
