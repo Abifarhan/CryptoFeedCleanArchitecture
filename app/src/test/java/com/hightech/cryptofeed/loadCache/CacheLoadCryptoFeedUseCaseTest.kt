@@ -119,32 +119,15 @@ class CacheLoadCryptoFeedUseCaseTest {
     }
 
     @Test
-    fun testSystemDeliverNoCryptoFeedAndError() = runBlocking {
+    fun testSystemDeliverNoCryptoFeed() = runBlocking {
         val items = emptyList<LocalCryptoFeed>()
 
-        every {
-            store.loadData()
-        } returns flowOf(LocalClientResult.Success(items))
-
-
-        sut.loadData().test {
-            when(val receivedResult = awaitItem()){
-                is LoadCryptoFeedResult.Success -> {
-                    assertEquals(receivedResult.cryptoFeed.isEmpty(), true)
-                }
-
-                else -> {
-
-                }
-            }
-            awaitComplete()
-        }
-
-        verify(exactly = 1) {
-            store.loadData()
-        }
-
-        confirmVerified(store)
+        expect(
+            sut = sut,
+            receivedResult = LocalClientResult.Success(items),
+            expectedResult = emptyList<LocalCryptoFeed>(),
+            exactly = 1
+        )
     }
 
     @Test
